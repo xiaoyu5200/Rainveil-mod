@@ -1,19 +1,8 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven("https://maven.fabricmc.net/")
-    }
-    dependencies {
-        classpath("net.fabricmc:fabric-loom:1.17.13")
-    }
-}
-
 plugins {
     java
     id("com.gradleup.shadow") version "8.3.5"
+    id("net.fabricmc.fabric-loom") version "1.17.13"
 }
-
-apply(plugin = "fabric-loom")
 
 val minecraftVersion = "1.21.11"
 val loaderVersion = "0.19.3"
@@ -35,10 +24,12 @@ repositories {
     maven("https://jitpack.io/")
 }
 
+// AllMusic bundles Apache HttpComponents 5 into the mod jar and relocates them; these are the only
+// external libraries that must travel inside the artifact. shadowImplementation is added to both
+// implementation (compile+runtime classpath) and the shadow plugin's `shadow` config so the httpclient
+// classes are available to the source AND get bundled + relocated by shadowJar.
+val shadowImplementation = configurations.create("shadowImplementation")
 configurations {
-    // AllMusic bundles Apache HttpComponents 5 into the mod jar and relocates them; these are the only
-    // external libraries that must travel inside the artifact.
-    val shadowImplementation by creating
     named("shadow").get().extendsFrom(shadowImplementation)
     named("implementation").get().extendsFrom(shadowImplementation)
 }
@@ -58,23 +49,23 @@ java {
 }
 
 dependencies {
-    add("minecraft", "com.mojang:minecraft:$minecraftVersion")
+    minecraft("com.mojang:minecraft:$minecraftVersion")
     mappings(loom.officialMojangMappings())
-    add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
-    add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    add("modCompileOnly", "maven.modrinth:jei:pw6C92V4")
-    add("modCompileOnly", "maven.modrinth:jade:AMBKaYce")
+    modImplementation("net.fabricmc:fabric-loader:$loaderVersion")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    modCompileOnly("maven.modrinth:jei:pw6C92V4")
+    modCompileOnly("maven.modrinth:jade:AMBKaYce")
 
     // AllMusic: network libs to be bundled (shadowImplementation) so they are present at runtime.
-    add("shadowImplementation", "org.apache.httpcomponents.client5:httpclient5:5.6.1")
-    add("shadowImplementation", "org.apache.httpcomponents.core5:httpcore5:5.4.2")
-    add("shadowImplementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.2")
+    shadowImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
+    shadowImplementation("org.apache.httpcomponents.core5:httpcore5:5.4.2")
+    shadowImplementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.2")
 
     // AllMusic: compile-only deps (provided by the game, or installed separately by the player).
-    add("compileOnly", "icyllis.modernui:ModernUI-Fabric:26.1.2-3.13.0.4")
-    add("compileOnly", "com.google.code.gson:gson:2.14.0")
-    add("compileOnly", "org.apache.logging.log4j:log4j-core:2.25.4")
-    add("compileOnly", "org.jspecify:jspecify:1.0.0")
+    compileOnly("icyllis.modernui:ModernUI-Fabric:26.1.2-3.13.0.4")
+    compileOnly("com.google.code.gson:gson:2.14.0")
+    compileOnly("org.apache.logging.log4j:log4j-core:2.25.4")
+    compileOnly("org.jspecify:jspecify:1.0.0")
 }
 
 sourceSets {
@@ -115,13 +106,13 @@ tasks {
         relocate("org.apache.hc.core5", "com.coloryr.allmusic.libs.org.apache.hc.core5")
         relocate("org.apache.hc.client5", "com.coloryr.allmusic.libs.org.apache.hc.client5")
         relocate("org.slf4j", "com.coloryr.allmusic.libs.org.slf4j")
-        configurations = listOf(configurations.getByName("shadowImplementation"))
+        configurations = listOf(shadowImplementation)
     }
     jar {
         archiveBaseName.set("$modId-1.21.11")
         archiveClassifier.set("")
     }
-    named<org.gradle.jvm.tasks.Jar>("remapJar") {
+    remapJar {
         dependsOn(shadowJar)
         inputFile.set(shadowJar.get().archiveFile)
         archiveFileName.set("$modId-1.21.11-$modVersion.jar")
