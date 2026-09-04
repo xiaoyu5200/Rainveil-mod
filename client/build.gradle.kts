@@ -1,6 +1,5 @@
 plugins {
     java
-    id("com.gradleup.shadow") version "8.3.5"
     id("net.fabricmc.fabric-loom") version "1.17.13"
 }
 
@@ -24,16 +23,6 @@ repositories {
     maven("https://jitpack.io/")
 }
 
-// AllMusic bundles Apache HttpComponents 5 into the mod jar and relocates them; these are the only
-// external libraries that must travel inside the artifact. shadowImplementation is added to both
-// implementation (compile+runtime classpath) and the shadow plugin's `shadow` config so the httpclient
-// classes are available to the source AND get bundled + relocated by shadowJar.
-val shadowImplementation = configurations.create("shadowImplementation")
-configurations {
-    named("shadow").get().extendsFrom(shadowImplementation)
-    named("implementation").get().extendsFrom(shadowImplementation)
-}
-
 // Loom's remapper only needs the Java libraries. Native LWJGL/JTracy artifacts are runtime inputs
 // for launching the game and are not required to rewrite this mod; excluding them keeps remapJar
 // reproducible when Mojang's native repository is unavailable.
@@ -49,23 +38,29 @@ java {
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:$minecraftVersion")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:$loaderVersion")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    modCompileOnly("maven.modrinth:jei:pw6C92V4")
-    modCompileOnly("maven.modrinth:jade:AMBKaYce")
+    // fabric-loom's dependency methods (minecraft/mappings/modImplementation/... ) are dynamic
+    // Groovy methods that Gradle does NOT expose as Kotlin-DSL accessors, so use the raw add() form.
+    add("minecraft", "com.mojang:minecraft:$minecraftVersion")
+    add("mappings", loom.officialMojangMappings())
+    add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
+    add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    add("modCompileOnly", "maven.modrinth:jei:pw6C92V4")
+    add("modCompileOnly", "maven.modrinth:jade:AMBKaYce")
 
-    // AllMusic: network libs to be bundled (shadowImplementation) so they are present at runtime.
-    shadowImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
-    shadowImplementation("org.apache.httpcomponents.core5:httpcore5:5.4.2")
-    shadowImplementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.2")
+    // AllMusic fetches audio over HTTP; bundle Apache HttpComponents 5 into the mod jar via loom's
+    // `include` configuration so it is present at runtime.
+    add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.1")
+    add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.4.2")
+    add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.2")
+    add("include", "org.apache.httpcomponents.client5:httpclient5:5.6.1")
+    add("include", "org.apache.httpcomponents.core5:httpcore5:5.4.2")
+    add("include", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.2")
 
     // AllMusic: compile-only deps (provided by the game, or installed separately by the player).
-    compileOnly("icyllis.modernui:ModernUI-Fabric:26.1.2-3.13.0.4")
-    compileOnly("com.google.code.gson:gson:2.14.0")
-    compileOnly("org.apache.logging.log4j:log4j-core:2.25.4")
-    compileOnly("org.jspecify:jspecify:1.0.0")
+    add("compileOnly", "icyllis.modernui:ModernUI-Fabric:26.1.2-3.13.0.4")
+    add("compileOnly", "com.google.code.gson:gson:2.14.0")
+    add("compileOnly", "org.apache.logging.log4j:log4j-core:2.25.4")
+    add("compileOnly", "org.jspecify:jspecify:1.0.0")
 }
 
 sourceSets {
@@ -101,24 +96,12 @@ tasks {
             expand(props)
         }
     }
-    shadowJar {
-        archiveClassifier.set("shadow")
-        relocate("org.apache.hc.core5", "com.coloryr.allmusic.libs.org.apache.hc.core5")
-        relocate("org.apache.hc.client5", "com.coloryr.allmusic.libs.org.apache.hc.client5")
-        relocate("org.slf4j", "com.coloryr.allmusic.libs.org.slf4j")
-        configurations = listOf(shadowImplementation)
-    }
     jar {
         archiveBaseName.set("$modId-1.21.11")
         archiveClassifier.set("")
     }
-    remapJar {
-        dependsOn(shadowJar)
-        inputFile.set(shadowJar.get().archiveFile)
+    named<org.gradle.jvm.tasks.Jar>("remapJar") {
         archiveFileName.set("$modId-1.21.11-$modVersion.jar")
-    }
-    build {
-        dependsOn(remapJar)
     }
     register<JavaExec>("channelTest") {
         dependsOn(testClasses)
