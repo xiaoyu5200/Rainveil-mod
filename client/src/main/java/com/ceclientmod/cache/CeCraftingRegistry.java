@@ -1,6 +1,6 @@
 package com.ceclientmod.cache;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.DataInputStream;
 import java.io.IOException;

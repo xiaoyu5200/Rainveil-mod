@@ -1,8 +1,8 @@
 package com.ceclientmod.cache;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.registry.Registries;
-import net.minecraft.state.property.Property;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 
 import java.util.Comparator;
 import java.util.stream.Collectors;
@@ -20,8 +20,8 @@ final class BlockStateStringifier {
     }
 
     static String stringify(BlockState state) {
-        String id = Registries.BLOCK.getId(state.getBlock()).toString();
-        String props = state.getEntries().entrySet().stream()
+        String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        String props = state.getValues().entrySet().stream()
                 .sorted(Comparator.comparing(v -> v.getKey().getName()))
                 .map(v -> stringifyProperty(v.getKey(), v.getValue()))
                 .collect(Collectors.joining(","));
@@ -29,6 +29,6 @@ final class BlockStateStringifier {
     }
 
     private static <T extends Comparable<T>> String stringifyProperty(Property<T> property, Comparable<?> value) {
-        return property.getName() + "=" + property.name((T) value);
+        return property.getName() + "=" + property.getName((T) value);
     }
 }

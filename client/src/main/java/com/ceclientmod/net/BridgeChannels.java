@@ -1,21 +1,21 @@
 package com.ceclientmod.net;
 
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 /** Channel identities shared with the server-side CraftEngineClientBridge plugin (see its BridgeChannels). */
 public final class BridgeChannels {
 
-    public static final CustomPayload.Id<ChunkPayload> ITEMS = id("items");
-    public static final CustomPayload.Id<ChunkPayload> BLOCKS = id("blocks");
-    public static final CustomPayload.Id<ChunkPayload> BREWING = id("brewing");
-    public static final CustomPayload.Id<ChunkPayload> CRAFTING_DISPLAY = id("crafting_display");
-    public static final CustomPayload.Id<ChunkPayload> SMITHING_DISPLAY = id("smithing_display");
-    public static final CustomPayload.Id<ChunkPayload> BLOCK_ICONS = id("block_icons");
-    public static final CustomPayload.Id<ChunkPayload> FURNITURE_ICON = id("furniture_icon");
+    public static final CustomPacketPayload.Type<ChunkPayload> ITEMS = id("items");
+    public static final CustomPacketPayload.Type<ChunkPayload> BLOCKS = id("blocks");
+    public static final CustomPacketPayload.Type<ChunkPayload> BREWING = id("brewing");
+    public static final CustomPacketPayload.Type<ChunkPayload> CRAFTING_DISPLAY = id("crafting_display");
+    public static final CustomPacketPayload.Type<ChunkPayload> SMITHING_DISPLAY = id("smithing_display");
+    public static final CustomPacketPayload.Type<ChunkPayload> BLOCK_ICONS = id("block_icons");
+    public static final CustomPacketPayload.Type<ChunkPayload> FURNITURE_ICON = id("furniture_icon");
 
-    private static <T extends CustomPayload> CustomPayload.Id<T> id(String path) {
-        return new CustomPayload.Id<>(Identifier.of("ceclientbridge", path));
+    private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> id(String path) {
+        return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("ceclientbridge", path));
     }
 
     private BridgeChannels() {

@@ -20,18 +20,19 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.ISubtypeRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.CraftingRecipe;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.RecipeEntry;
-import net.minecraft.recipe.book.CraftingRecipeCategory;
-import net.minecraft.recipe.display.SlotDisplay;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ import java.util.Map;
 @JeiPlugin
 public final class CeJeiPlugin implements IModPlugin {
 
-    private static final Identifier UID = Identifier.of("ceclientmod", "jei_plugin");
+    private static final Identifier UID = Identifier.fromNamespaceAndPath("ceclientmod", "jei_plugin");
     private static final Logger LOGGER = LoggerFactory.getLogger("ceclientmod");
 
     private static IIngredientManager ingredientManager;
@@ -89,7 +90,7 @@ public final class CeJeiPlugin implements IModPlugin {
         // identity while the item list (populated a different way, via addIngredientsAtRuntime) worked.
         ISubtypeInterpreter<ItemStack> interpreter = (stack, context) ->
                 CeItemRegistry.ceIdOf(stack).orElse(null);
-        for (Item item : Registries.ITEM) {
+        for (Item item : BuiltInRegistries.ITEM) {
             try {
                 registration.registerSubtypeInterpreter(item, interpreter);
             } catch (IllegalArgumentException ignored) {
@@ -194,10 +195,10 @@ public final class CeJeiPlugin implements IModPlugin {
         if (entries.isEmpty()) {
             return;
         }
-        List<RecipeEntry<CraftingRecipe>> recipes = new ArrayList<>();
+        List<RecipeHolder<CraftingRecipe>> recipes = new ArrayList<>();
         for (CeCraftingEntry entry : entries) {
             try {
-                RecipeEntry<CraftingRecipe> recipe = buildDisplayRecipe(entry);
+                RecipeHolder<CraftingRecipe> recipe = buildDisplayRecipe(entry);
                 if (recipe != null) {
                     recipes.add(recipe);
                 }
@@ -217,7 +218,7 @@ public final class CeJeiPlugin implements IModPlugin {
         craftingDisplayAdded = true;
     }
 
-    private static RecipeEntry<CraftingRecipe> buildDisplayRecipe(CeCraftingEntry entry) {
+    private static RecipeHolder<CraftingRecipe> buildDisplayRecipe(CeCraftingEntry entry) {
         List<ItemStack> inputs = entry.inputs();
         int width = entry.width();
         int height = entry.height();
@@ -225,9 +226,9 @@ public final class CeJeiPlugin implements IModPlugin {
             return null;
         }
 
-        SlotDisplay resultDisplay = new SlotDisplay.StackSlotDisplay(entry.result());
+        SlotDisplay resultDisplay = new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(entry.result()));
         IJeiShapedRecipeBuilder builder = vanillaRecipeFactory.createShapedRecipeBuilder(
-                CraftingRecipeCategory.MISC, resultDisplay);
+                CraftingBookCategory.MISC, resultDisplay);
 
         Map<ItemStack, Character> assigned = new LinkedHashMap<>();
         char next = 'a';
@@ -243,8 +244,8 @@ public final class CeJeiPlugin implements IModPlugin {
                 if (ch == null) {
                     ch = next++;
                     assigned.put(stack, ch);
-                    Ingredient typeIngredient = Ingredient.ofItem(stack.getItem());
-                    SlotDisplay slotDisplay = new SlotDisplay.StackSlotDisplay(stack);
+                    Ingredient typeIngredient = Ingredient.of(stack.getItem());
+                    SlotDisplay slotDisplay = new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(stack));
                     builder.define(ch, typeIngredient, slotDisplay);
                 }
                 line.append((char) ch);
@@ -252,9 +253,9 @@ public final class CeJeiPlugin implements IModPlugin {
             builder.pattern(line.toString());
         }
         CraftingRecipe recipe = builder.build();
-        RegistryKey<net.minecraft.recipe.Recipe<?>> id =
-                RegistryKey.of(RegistryKeys.RECIPE, Identifier.of(entry.recipeId()));
-        return new RecipeEntry<>(id, recipe);
+        ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id =
+                ResourceKey.create(Registries.RECIPE, Identifier.parse(entry.recipeId()));
+        return new RecipeHolder<>(id, recipe);
     }
 
     /**

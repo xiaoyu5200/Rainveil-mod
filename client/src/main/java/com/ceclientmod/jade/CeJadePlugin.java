@@ -2,12 +2,12 @@ package com.ceclientmod.jade;
 
 import com.ceclientmod.CraftEngineClientModInit;
 import com.ceclientmod.cache.CeItem;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.EntityAccessor;
 import snownee.jade.api.IBlockComponentProvider;
@@ -32,7 +32,7 @@ import snownee.jade.api.ui.JadeUI;
  */
 public final class CeJadePlugin implements IWailaPlugin {
 
-    private static final Identifier UID = Identifier.of("ceclientmod", "jade_plugin");
+    private static final Identifier UID = Identifier.fromNamespaceAndPath("ceclientmod", "jade_plugin");
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
@@ -46,16 +46,16 @@ public final class CeJadePlugin implements IWailaPlugin {
             // Prefer the full item cache (carries the real display name on the JEI/items channel),
             // falling back to the block-icon item, whose appearance may only carry the model and not
             // the custom name. This guarantees the CraftEngine name replaces the vanilla disguise name.
-            Text name = CraftEngineClientModInit.blocks().ceIdFor(state)
+            Component name = CraftEngineClientModInit.blocks().ceIdFor(state)
                     .map(CraftEngineClientModInit.items()::byId)
                     .flatMap(opt -> opt.map(CeItem::stack))
-                    .map(ItemStack::getName)
+                    .map(ItemStack::getHoverName)
                     .orElseGet(() -> CraftEngineClientModInit.blockIcons().iconFor(state)
-                            .map(ItemStack::getName)
+                            .map(ItemStack::getHoverName)
                             .orElse(null));
             if (name != null) {
                 ITooltip tooltip = box.getTooltip();
-                Text title = IThemeHelper.get().title(name);
+                Component title = IThemeHelper.get().title(name);
                 // Jade 19.0.3's ObjectNameProvider adds the block name under CORE_OBJECT_NAME. Replace it
                 // with the CraftEngine name, then re-layout: BoxElementImpl builds its layout/renderables
                 // at CONSTRUCTION time (before this collected callback runs), so without updateSize() the

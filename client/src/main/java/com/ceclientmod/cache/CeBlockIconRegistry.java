@@ -1,8 +1,8 @@
 package com.ceclientmod.cache;
 
 import com.ceclientbridge.protocol.JadeIconProtocol;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

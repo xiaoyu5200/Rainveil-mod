@@ -1,16 +1,16 @@
 package com.ceclientmod.net;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 /** C2S request for the CraftEngine furniture represented by the entity currently targeted by Jade. */
-public record FurnitureProbePayload(int requestId, int entityId) implements CustomPayload {
+public record FurnitureProbePayload(int requestId, int entityId) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<FurnitureProbePayload> TYPE =
-            new CustomPayload.Id<>(Identifier.of("ceclientbridge", "furniture_probe"));
-    public static final PacketCodec<RegistryByteBuf, FurnitureProbePayload> CODEC = PacketCodec.ofStatic(
+    public static final CustomPacketPayload.Type<FurnitureProbePayload> TYPE =
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("ceclientbridge", "furniture_probe"));
+    public static final StreamCodec<FriendlyByteBuf, FurnitureProbePayload> CODEC = StreamCodec.of(
             (buf, payload) -> {
                 buf.writeVarInt(payload.requestId());
                 buf.writeVarInt(payload.entityId());
@@ -19,7 +19,7 @@ public record FurnitureProbePayload(int requestId, int entityId) implements Cust
     );
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 }

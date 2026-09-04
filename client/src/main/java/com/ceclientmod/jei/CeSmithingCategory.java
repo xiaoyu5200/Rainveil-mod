@@ -7,11 +7,11 @@ import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.recipe.RecipeType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
+import mezz.jei.api.recipe.category.IRecipeCategory;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * A fully custom JEI recipe category for the smithing table, bypassing JEI's own built-in
@@ -44,8 +44,8 @@ public final class CeSmithingCategory implements IRecipeCategory<CeSmithingEntry
     }
 
     @Override
-    public Text getTitle() {
-        return Text.translatable("container.smithing");
+    public Component getTitle() {
+        return Component.translatable("container.smithing");
     }
 
     @Override

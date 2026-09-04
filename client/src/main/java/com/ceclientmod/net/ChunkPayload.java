@@ -1,25 +1,24 @@
 package com.ceclientmod.net;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * One raw protocol frame carried by one of the existing bridge channels. The server writes the complete
  * generation/chunk header before sending this payload; the client validates it in {@link ChunkAssembler}.
  */
-public record ChunkPayload(CustomPayload.Id<ChunkPayload> payloadId, byte[] data) implements CustomPayload {
+public record ChunkPayload(CustomPacketPayload.Type<ChunkPayload> payloadId, byte[] data) implements CustomPacketPayload {
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
         return payloadId;
     }
 
-    public static PacketCodec<RegistryByteBuf, ChunkPayload> codecFor(CustomPayload.Id<ChunkPayload> id) {
-        return PacketCodec.tuple(
-                PacketCodecs.BYTE_ARRAY, ChunkPayload::data,
-                data -> new ChunkPayload(id, data)
+    public static StreamCodec<FriendlyByteBuf, ChunkPayload> codecFor(CustomPacketPayload.Type<ChunkPayload> id) {
+        return StreamCodec.of(
+                (buf, chunk) -> buf.writeByteArray(chunk.data()),
+                buf -> new ChunkPayload(id, buf.readByteArray())
         );
     }
 }

@@ -3,8 +3,8 @@ package com.ceclientmod.cache;
 import com.ceclientbridge.protocol.JadeIconProtocol;
 import com.ceclientmod.net.FurnitureProbePayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

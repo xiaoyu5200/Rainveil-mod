@@ -3,16 +3,17 @@ package com.ceclientmod.cache;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.CustomModelData;
+import net.minecraft.world.item.ItemModel;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -57,19 +58,19 @@ public final class CeItemRegistry {
 
     /** Mirrors SyncManager#writeItemAppearance, including a per-stack optional CraftEngine identity. */
     public static ItemStack readAppearance(DataInputStream in) throws IOException {
-        Identifier baseId = Identifier.of(in.readUTF());
-        Item baseItem = Registries.ITEM.get(baseId);
+        Identifier baseId = Identifier.parse(in.readUTF());
+        Item baseItem = BuiltInRegistries.ITEM.get(baseId);
         ItemStack stack = new ItemStack(baseItem);
 
         String ceId = in.readBoolean() ? in.readUTF() : null;
         if (in.readBoolean()) {
             int cmd = in.readInt();
-            stack.set(DataComponentTypes.CUSTOM_MODEL_DATA,
-                    new CustomModelDataComponent(List.of((float) cmd), List.of(), List.of(), List.of()));
+            stack.set(DataComponents.CUSTOM_MODEL_DATA,
+                    new CustomModelData(List.of((float) cmd), List.of(), List.of(), List.of()));
         }
         if (in.readBoolean()) {
-            Identifier itemModel = Identifier.of(in.readUTF());
-            stack.set(DataComponentTypes.ITEM_MODEL, itemModel);
+            Identifier itemModel = Identifier.parse(in.readUTF());
+            stack.set(DataComponents.ITEM_MODEL, ItemModel.fromId(itemModel));
         }
         if (in.readBoolean()) {
             // Sent as full JSON, not plain text: CraftEngine commonly sets its name to a *translatable*
@@ -77,31 +78,31 @@ public final class CeItemRegistry {
             // language file rather than flattened to a literal string server-side.
             String json = in.readUTF();
             JsonElement element = JsonParser.parseString(json);
-            Text name = TextCodecs.CODEC.parse(JsonOps.INSTANCE, element)
+            Component name = ComponentSerialization.CODEC.parse(JsonOps.INSTANCE, element)
                     .resultOrPartial(error -> {})
-                    .orElseGet(() -> Text.literal(json));
-            stack.set(DataComponentTypes.CUSTOM_NAME, name);
+                    .orElseGet(() -> Component.literal(json));
+            stack.set(DataComponents.CUSTOM_NAME, name);
         }
 
         if (ceId != null) {
-            NbtCompound tag = new NbtCompound();
+            CompoundTag tag = new CompoundTag();
             tag.putString(CUSTOM_DATA_ID_KEY, ceId);
-            stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         }
         return stack;
     }
 
     /** Reads the craftengine:id marker back off a stack - used by the JEI subtype interpreter. */
     public static Optional<String> ceIdOf(ItemStack stack) {
-        NbtComponent data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         if (data == null) {
             return Optional.empty();
         }
-        NbtCompound tag = data.copyNbt();
+        CompoundTag tag = data.copyTag();
         if (!tag.contains(CUSTOM_DATA_ID_KEY)) {
             return Optional.empty();
         }
-        return Optional.of(tag.getString(CUSTOM_DATA_ID_KEY).orElse(null));
+        return Optional.of(tag.getString(CUSTOM_DATA_ID_KEY));
     }
 
     public Optional<CeItem> byId(String ceId) {

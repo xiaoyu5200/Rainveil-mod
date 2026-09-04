@@ -1,6 +1,6 @@
 package com.ceclientmod.cache;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.io.DataInputStream;
 import java.io.IOException;
