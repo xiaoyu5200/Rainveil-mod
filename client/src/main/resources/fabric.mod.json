@@ -3,11 +3,15 @@
   "id": "${mod_id}",
   "version": "${mod_version}",
   "name": "Rainveil-mod",
-  "description": "Shows CraftEngine's custom items/blocks as their true identity in JEI and Jade.",
+  "description": "Shows CraftEngine's custom items/blocks as their true identity in JEI and Jade, and adds AllMusic's in-game music playback and HUD.",
   "environment": "client",
   "entrypoints": {
+    "main": [
+      "com.coloryr.allmusic.comm.AllMusicInit"
+    ],
     "client": [
-      "com.ceclientmod.CraftEngineClientModInit"
+      "com.ceclientmod.CraftEngineClientModInit",
+      "com.coloryr.allmusic.client.AllMusicClient"
     ],
     "jade": [
       "com.ceclientmod.jade.CeJadePlugin"
@@ -16,6 +20,12 @@
       "com.ceclientmod.jei.CeJeiPlugin"
     ]
   },
+  "mixins": [
+    {
+      "config": "allmusic_client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
@@ -24,6 +34,7 @@
   },
   "suggests": {
     "jei": "*",
-    "jade": "*"
+    "jade": "*",
+    "modernui": "*"
   }
 }

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build CE-JEI Bridge artifacts
+    name: Build Rainveil-mod client
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,47 +36,26 @@ jobs:
         run: |
           echo "JAVA_HOME=${{ steps.java21.outputs.path }}" >> "$GITHUB_ENV"
 
-      - name: Verify bundled CraftEngine compile dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf '%s  %s\n' "8771A23713BEABCFEFA46DD0B4C768D7EB1112DBDE803243C972C08EC157D406" "server/libs/craft-engine-paper-plugin-26.7.4.jar" \
-            | sha256sum --check --status -
-
       - name: Run protocol tests
         working-directory: client
         shell: bash
         run: bash ./gradlew --no-daemon -p ../protocol protocolTest handshakeTest
 
-      - name: Build Fabric 1.21.11 client
+      - name: Build Fabric client mod
         working-directory: client
         shell: bash
         run: bash ./gradlew --no-daemon clean build
-
-      - name: Build Paper 1.21.11 plugin with shadowJar
-        working-directory: server
-        shell: bash
-        run: bash ./gradlew --no-daemon clean shadowJar -Ptarget=1.21.11
-
-      - name: Stage release files and checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cp server/build/libs/CraftEngineClientBridge-1.0.2-1.21.11.jar dist/
-          cp client/build/libs/ceclientmod-1.21.11-1.0.2.jar dist/
-          sha256sum dist/*.jar > dist/SHA256SUMS.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ce-jei-bridge-${{ github.sha }}
-          path: dist
+          path: client/build/libs/ceclientmod-1.21.11-*.jar
           if-no-files-found: error
           retention-days: 14
 
   release:
-    name: Publish plugin and mod releases
+    name: Publish client mod release
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
@@ -96,17 +75,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          required_assets=(
-            "CraftEngineClientBridge-1.0.2-1.21.11.jar"
-            "ceclientmod-1.21.11-1.0.2.jar"
-            "SHA256SUMS.txt"
-          )
-          for asset in "${required_assets[@]}"; do
-            test -f "dist/$asset" || {
-              echo "Missing release asset: dist/$asset" >&2
-              exit 1
-            }
-          done
+          asset="ceclientmod-1.21.11-1.0.2.jar"
+          test -f "dist/$asset" || {
+            echo "Missing release asset: dist/$asset" >&2
+            exit 1
+          }
+          ( cd dist && sha256sum "$asset" > SHA256SUMS.txt )
 
           if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             release_tag="latest"
