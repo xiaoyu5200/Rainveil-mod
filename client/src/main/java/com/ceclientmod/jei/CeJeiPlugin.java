@@ -26,7 +26,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingRecipe;
@@ -226,7 +225,7 @@ public final class CeJeiPlugin implements IModPlugin {
             return null;
         }
 
-        SlotDisplay resultDisplay = new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(entry.result()));
+        SlotDisplay resultDisplay = new SlotDisplay.ItemStackSlotDisplay(entry.result());
         IJeiShapedRecipeBuilder builder = vanillaRecipeFactory.createShapedRecipeBuilder(
                 CraftingBookCategory.MISC, resultDisplay);
 
@@ -245,7 +244,7 @@ public final class CeJeiPlugin implements IModPlugin {
                     ch = next++;
                     assigned.put(stack, ch);
                     Ingredient typeIngredient = Ingredient.of(stack.getItem());
-                    SlotDisplay slotDisplay = new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(stack));
+                    SlotDisplay slotDisplay = new SlotDisplay.ItemStackSlotDisplay(stack);
                     builder.define(ch, typeIngredient, slotDisplay);
                 }
                 line.append((char) ch);

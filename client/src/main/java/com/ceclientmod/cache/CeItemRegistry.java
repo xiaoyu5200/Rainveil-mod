@@ -13,7 +13,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.CustomModelData;
-import net.minecraft.world.item.ItemModel;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -59,7 +58,7 @@ public final class CeItemRegistry {
     /** Mirrors SyncManager#writeItemAppearance, including a per-stack optional CraftEngine identity. */
     public static ItemStack readAppearance(DataInputStream in) throws IOException {
         Identifier baseId = Identifier.parse(in.readUTF());
-        Item baseItem = BuiltInRegistries.ITEM.get(baseId);
+        Item baseItem = BuiltInRegistries.ITEM.getValue(baseId);
         ItemStack stack = new ItemStack(baseItem);
 
         String ceId = in.readBoolean() ? in.readUTF() : null;
@@ -70,7 +69,7 @@ public final class CeItemRegistry {
         }
         if (in.readBoolean()) {
             Identifier itemModel = Identifier.parse(in.readUTF());
-            stack.set(DataComponents.ITEM_MODEL, ItemModel.fromId(itemModel));
+            stack.set(DataComponents.ITEM_MODEL, itemModel);
         }
         if (in.readBoolean()) {
             // Sent as full JSON, not plain text: CraftEngine commonly sets its name to a *translatable*
@@ -102,7 +101,7 @@ public final class CeItemRegistry {
         if (!tag.contains(CUSTOM_DATA_ID_KEY)) {
             return Optional.empty();
         }
-        return Optional.of(tag.getString(CUSTOM_DATA_ID_KEY));
+        return tag.getString(CUSTOM_DATA_ID_KEY);
     }
 
     public Optional<CeItem> byId(String ceId) {
