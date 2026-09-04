@@ -1,11 +1,23 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven("https://maven.fabricmc.net/")
+    }
+    dependencies {
+        classpath("net.fabricmc:fabric-loom:1.17.13")
+    }
+}
+
 plugins {
     java
-    id("net.fabricmc.fabric-loom") version "1.17.13"
 }
+
+apply(plugin = "fabric-loom")
 
 val minecraftVersion = "1.21.11"
 val loaderVersion = "0.19.3"
 val fabricApiVersion = "0.141.6+1.21.11"
+val yarnVersion = "1.21.11+build.1"
 val minecraftDependency = ">=1.21.11 <1.22"
 val targetFamily = "1.21.11"
 
@@ -38,10 +50,8 @@ java {
 }
 
 dependencies {
-    // fabric-loom's dependency methods (minecraft/mappings/modImplementation/... ) are dynamic
-    // Groovy methods that Gradle does NOT expose as Kotlin-DSL accessors, so use the raw add() form.
     add("minecraft", "com.mojang:minecraft:$minecraftVersion")
-    add("mappings", loom.officialMojangMappings())
+    add("mappings", "net.fabricmc:yarn:$yarnVersion:v2")
     add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
     add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     add("modCompileOnly", "maven.modrinth:jei:pw6C92V4")
