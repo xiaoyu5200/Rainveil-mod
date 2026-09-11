@@ -12,9 +12,13 @@ import com.ceclientbridge.recipe.RecipeSyncListener;
 import com.ceclientbridge.sync.SyncManager;
 import com.ceclientbridge.version.BridgeServerTarget;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
+import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
+import net.momirealms.craftengine.core.block.BlockDefinition;
+import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
@@ -35,6 +39,7 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
     private SyncManager syncManager;
     private final BridgeCompatibilityGate compatibilityGate = new BridgeCompatibilityGate();
     private final java.util.Map<java.util.UUID, FixedWindowRateLimiter> furnitureProbeLimits = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, FixedWindowRateLimiter> blockProbeLimits = new java.util.HashMap<>();
 
     @Override
     public void onEnable() {
@@ -47,8 +52,10 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
         getServer().getMessenger().registerOutgoingPluginChannel(this, BridgeChannels.SMITHING_DISPLAY);
         getServer().getMessenger().registerOutgoingPluginChannel(this, BridgeChannels.BLOCK_ICONS);
         getServer().getMessenger().registerOutgoingPluginChannel(this, BridgeChannels.FURNITURE_ICON);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, BridgeChannels.BLOCK_INFO);
         getServer().getMessenger().registerIncomingPluginChannel(this, BridgeChannels.HELLO, this);
         getServer().getMessenger().registerIncomingPluginChannel(this, BridgeChannels.FURNITURE_PROBE, this);
+        getServer().getMessenger().registerIncomingPluginChannel(this, BridgeChannels.BLOCK_PROBE, this);
 
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new RecipeSyncListener(this, syncManager), this);
@@ -73,6 +80,10 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
         if (BridgeChannels.FURNITURE_PROBE.equals(channel)) {
             handleFurnitureProbe(player, message);
+            return;
+        }
+        if (BridgeChannels.BLOCK_PROBE.equals(channel)) {
+            handleBlockProbe(player, message);
             return;
         }
         if (!BridgeChannels.HELLO.equals(channel)) return;
@@ -163,6 +174,69 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
         return false;
     }
 
+    /**
+     * Authoritative block lookup for Jade. The client can only see the block's disguise blockstate, which is
+     * ambiguous when two custom blocks share it; asking the server for the block at a known position lets
+     * CraftEngine's own positional block data answer instead, so the right name/icon is always returned.
+     */
+    private void handleBlockProbe(Player player, byte[] message) {
+        if (!compatibilityGate.isCompatible(player.getUniqueId())
+                || !player.getListeningPluginChannels().contains(BridgeChannels.BLOCK_INFO)) {
+            return;
+        }
+        FixedWindowRateLimiter limiter = blockProbeLimits.computeIfAbsent(
+                player.getUniqueId(), ignored -> new FixedWindowRateLimiter(20, 1_000L));
+        if (!limiter.tryAcquire(System.currentTimeMillis())) return;
+        JadeIconProtocol.BlockProbe probe;
+        try {
+            probe = JadeIconProtocol.decodeBlockProbe(message);
+        } catch (IllegalArgumentException malformed) {
+            getLogger().warning("Rejected malformed Jade block probe from " + player.getName() + ": " + malformed.getMessage());
+            return;
+        }
+
+        JadeIconProtocol.BlockInfo response = resolveBlockInfo(player, probe);
+        long responseGeneration = (syncManager.generation() << 32) | (probe.requestId() & 0xFFFFFFFFL);
+        BridgeChannels.send(this, player, BridgeChannels.BLOCK_INFO, responseGeneration,
+                JadeIconProtocol.encodeBlockInfo(response));
+    }
+
+    private JadeIconProtocol.BlockInfo resolveBlockInfo(Player player, JadeIconProtocol.BlockProbe probe) {
+        long packed = probe.blockPos();
+        try {
+            net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(packed);
+            org.bukkit.block.Block block = player.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
+            if (block.getLocation().distanceSquared(player.getLocation()) > 64.0) {
+                return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, "", new byte[0]);
+            }
+            ImmutableBlockState state = CraftEngineBlocks.getCustomBlockState(block);
+            if (state == null) {
+                return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, "", new byte[0]);
+            }
+            String ceId = null;
+            for (java.util.Map.Entry<Key, BlockDefinition> entry : CraftEngineBlocks.loadedBlocks().entrySet()) {
+                for (ImmutableBlockState candidate : entry.getValue().variantProvider().states()) {
+                    if (candidate == state || candidate.equals(state)) {
+                        ceId = entry.getKey().asString();
+                        break;
+                    }
+                }
+                if (ceId != null) break;
+            }
+            if (ceId == null) {
+                return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, "", new byte[0]);
+            }
+            byte[] appearance = syncManager.blockIconAppearance(ceId);
+            if (appearance == null) {
+                return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, "", new byte[0]);
+            }
+            return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, ceId, appearance);
+        } catch (Throwable t) {
+            getLogger().log(java.util.logging.Level.WARNING, "Failed to resolve CraftEngine block for " + player.getName(), t);
+            return new JadeIconProtocol.BlockInfo(probe.requestId(), packed, "", new byte[0]);
+        }
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // sendPluginMessage silently no-ops until the client's channel-registration packet reaches the
@@ -191,6 +265,7 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
     public void onQuit(PlayerQuitEvent event) {
         compatibilityGate.clear(event.getPlayer().getUniqueId());
         furnitureProbeLimits.remove(event.getPlayer().getUniqueId());
+        blockProbeLimits.remove(event.getPlayer().getUniqueId());
     }
 
     public void pushAllTo(Player player) {

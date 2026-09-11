@@ -24,6 +24,8 @@ public final class BridgeChannels {
     public static final String BLOCK_ICONS = "ceclientbridge:block_icons";
     public static final String FURNITURE_PROBE = "ceclientbridge:furniture_probe";
     public static final String FURNITURE_ICON = "ceclientbridge:furniture_icon";
+    public static final String BLOCK_PROBE = "ceclientbridge:block_probe";
+    public static final String BLOCK_INFO = "ceclientbridge:block_info";
     public static final String HELLO = "ceclientbridge:hello";
 
     private static final int MAX_CHUNK_BYTES = 30000;

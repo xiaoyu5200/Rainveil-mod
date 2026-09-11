@@ -6,7 +6,9 @@ import com.ceclientmod.cache.CeCraftingRegistry;
 import com.ceclientmod.cache.CeItemRegistry;
 import com.ceclientmod.cache.CeSmithingRegistry;
 import com.ceclientmod.cache.CeBlockIconRegistry;
+import com.ceclientmod.cache.CeBlockInfoRegistry;
 import com.ceclientmod.cache.CeFurnitureIconRegistry;
+import com.ceclientmod.net.BlockProbePayload;
 import com.ceclientmod.net.BridgeChannels;
 import com.ceclientmod.net.ChunkAssembler;
 import com.ceclientmod.net.ChunkPayload;
@@ -41,6 +43,7 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
     private static final CeSmithingRegistry SMITHING_DISPLAY = new CeSmithingRegistry();
     private static final CeBlockIconRegistry BLOCK_ICONS = new CeBlockIconRegistry();
     private static final CeFurnitureIconRegistry FURNITURE_ICONS = new CeFurnitureIconRegistry();
+    private static final CeBlockInfoRegistry BLOCK_INFO = new CeBlockInfoRegistry();
 
     private static final int HELLO_MAX_ATTEMPTS = 200; // ~10s at 20 ticks/sec
     private static boolean helloPending = false;
@@ -74,6 +77,10 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
         return FURNITURE_ICONS;
     }
 
+    public static CeBlockInfoRegistry blockInfo() {
+        return BLOCK_INFO;
+    }
+
     @Override
     public void onInitializeClient() {
         PayloadTypeRegistry.playS2C().register(BridgeChannels.ITEMS, ChunkPayload.codecFor(BridgeChannels.ITEMS));
@@ -83,8 +90,10 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
         PayloadTypeRegistry.playS2C().register(BridgeChannels.SMITHING_DISPLAY, ChunkPayload.codecFor(BridgeChannels.SMITHING_DISPLAY));
         PayloadTypeRegistry.playS2C().register(BridgeChannels.BLOCK_ICONS, ChunkPayload.codecFor(BridgeChannels.BLOCK_ICONS));
         PayloadTypeRegistry.playS2C().register(BridgeChannels.FURNITURE_ICON, ChunkPayload.codecFor(BridgeChannels.FURNITURE_ICON));
+        PayloadTypeRegistry.playS2C().register(BridgeChannels.BLOCK_INFO, ChunkPayload.codecFor(BridgeChannels.BLOCK_INFO));
         PayloadTypeRegistry.playC2S().register(HelloPayload.TYPE, HelloPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(FurnitureProbePayload.TYPE, FurnitureProbePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(BlockProbePayload.TYPE, BlockProbePayload.CODEC);
 
         ChunkAssembler itemsAssembler = new ChunkAssembler("items");
         ChunkAssembler blocksAssembler = new ChunkAssembler("blocks");
@@ -93,6 +102,7 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
         ChunkAssembler smithingDisplayAssembler = new ChunkAssembler("smithing_display");
         ChunkAssembler blockIconsAssembler = new ChunkAssembler("block_icons");
         ChunkAssembler furnitureIconAssembler = new ChunkAssembler("furniture_icon");
+        ChunkAssembler blockInfoAssembler = new ChunkAssembler("block_info");
 
         ClientPlayNetworking.registerGlobalReceiver(BridgeChannels.ITEMS, (payload, context) ->
                 itemsAssembler.accept(payload).ifPresent(full -> {
@@ -167,6 +177,15 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
                     }
                 }));
 
+        ClientPlayNetworking.registerGlobalReceiver(BridgeChannels.BLOCK_INFO, (payload, context) ->
+                blockInfoAssembler.accept(payload).ifPresent(full -> {
+                    try {
+                        BLOCK_INFO.accept(full);
+                    } catch (Exception e) {
+                        LOGGER.warn("ceclientmod: failed to parse Jade block info response", e);
+                    }
+                }));
+
         // canSend(HELLO) is frequently still false right at JOIN - the server's channel-advertisement
         // packet hasn't necessarily been processed client-side yet, so a one-shot send here silently
         // did nothing most of the time. Retry every client tick until it succeeds (typically within a
@@ -179,8 +198,10 @@ public final class CraftEngineClientModInit implements ClientModInitializer {
             smithingDisplayAssembler.clear();
             blockIconsAssembler.clear();
             furnitureIconAssembler.clear();
+            blockInfoAssembler.clear();
             BLOCK_ICONS.clear();
             FURNITURE_ICONS.clear();
+            BLOCK_INFO.clear();
             helloPending = true;
             helloAttempts = 0;
         });

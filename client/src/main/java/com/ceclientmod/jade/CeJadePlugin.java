@@ -1,6 +1,7 @@
 package com.ceclientmod.jade;
 
 import com.ceclientmod.CraftEngineClientModInit;
+import com.ceclientmod.cache.CeBlockInfoRegistry;
 import com.ceclientmod.cache.CeItem;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -43,16 +44,20 @@ public final class CeJadePlugin implements IWailaPlugin {
         registration.addTooltipCollectedCallback(Integer.MAX_VALUE, (box, accessor) -> {
             if (!(accessor instanceof BlockAccessor blockAccessor)) return;
             BlockState state = blockAccessor.getBlockState();
-            // Prefer the full item cache (carries the real display name on the JEI/items channel),
-            // falling back to the block-icon item, whose appearance may only carry the model and not
-            // the custom name. This guarantees the CraftEngine name replaces the vanilla disguise name.
-            Component name = CraftEngineClientModInit.blocks().ceIdFor(state)
-                    .map(CraftEngineClientModInit.items()::byId)
-                    .flatMap(opt -> opt.map(CeItem::stack))
+            // Ask the server which CraftEngine block is actually at this position first: the disguise
+            // blockstate alone is ambiguous when two custom blocks share it, which is what makes one block
+            // show another's item. The state-keyed caches below stay as a fallback until the authoritative
+            // reply arrives (the probe is asynchronous, so the first look may still show the fallback).
+            Component name = CraftEngineClientModInit.blockInfo().infoFor(blockAccessor.getPosition())
+                    .map(CeBlockInfoRegistry.Info::stack)
                     .map(ItemStack::getHoverName)
-                    .orElseGet(() -> CraftEngineClientModInit.blockIcons().iconFor(state)
+                    .orElseGet(() -> CraftEngineClientModInit.blocks().ceIdFor(state)
+                            .map(CraftEngineClientModInit.items()::byId)
+                            .flatMap(opt -> opt.map(CeItem::stack))
                             .map(ItemStack::getHoverName)
-                            .orElse(null));
+                            .orElseGet(() -> CraftEngineClientModInit.blockIcons().iconFor(state)
+                                    .map(ItemStack::getHoverName)
+                                    .orElse(null)));
             if (name != null) {
                 ITooltip tooltip = box.getTooltip();
                 Component title = IThemeHelper.get().title(name);
@@ -73,9 +78,12 @@ public final class CeJadePlugin implements IWailaPlugin {
 
         @Override
         public Element getIcon(BlockAccessor accessor, IPluginConfig config, Element currentIcon) {
-            return CraftEngineClientModInit.blockIcons().iconFor(accessor.getBlockState())
+            return CraftEngineClientModInit.blockInfo().infoFor(accessor.getPosition())
+                    .map(CeBlockInfoRegistry.Info::stack)
                     .<Element>map(JadeUI::item)
-                    .orElse(currentIcon);
+                    .orElseGet(() -> CraftEngineClientModInit.blockIcons().iconFor(accessor.getBlockState())
+                            .<Element>map(JadeUI::item)
+                            .orElse(currentIcon));
         }
 
         @Override

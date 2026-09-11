@@ -45,6 +45,24 @@ public final class JadeIconProtocol {
         }
     }
 
+    public record BlockProbe(int requestId, long blockPos) {
+        public BlockProbe {
+            if (requestId < 0) throw new IllegalArgumentException("negative request id");
+        }
+    }
+
+    /** Empty {@code ceId} and appearance mean the block is not a CraftEngine custom block. */
+    public record BlockInfo(int requestId, long blockPos, String ceId, byte[] appearance) {
+        public BlockInfo {
+            if (requestId < 0) throw new IllegalArgumentException("negative request id");
+            if (ceId == null) throw new IllegalArgumentException("null CraftEngine id");
+            appearance = requireAppearance(appearance);
+            if (ceId.isEmpty() != (appearance.length == 0)) {
+                throw new IllegalArgumentException("block id and appearance must both be present or absent");
+            }
+        }
+    }
+
     public static byte[] encodeBlockIcons(List<BlockIcon> icons) {
         if (icons == null || icons.size() > MAX_BLOCK_ICONS) {
             throw new IllegalArgumentException("invalid block icon count");
@@ -94,6 +112,31 @@ public final class JadeIconProtocol {
     public static FurnitureIcon decodeFurnitureIcon(byte[] payload) {
         return read(payload, in -> new FurnitureIcon(
                 readVarInt(in), readVarInt(in), in.readUTF(), readAppearance(in)));
+    }
+
+    public static byte[] encodeBlockProbe(BlockProbe probe) {
+        return write(out -> {
+            writeVarInt(out, probe.requestId());
+            out.writeLong(probe.blockPos());
+        });
+    }
+
+    public static BlockProbe decodeBlockProbe(byte[] payload) {
+        return read(payload, in -> new BlockProbe(readVarInt(in), in.readLong()));
+    }
+
+    public static byte[] encodeBlockInfo(BlockInfo info) {
+        return write(out -> {
+            writeVarInt(out, info.requestId());
+            out.writeLong(info.blockPos());
+            out.writeUTF(info.ceId());
+            writeAppearance(out, info.appearance());
+        });
+    }
+
+    public static BlockInfo decodeBlockInfo(byte[] payload) {
+        return read(payload, in -> new BlockInfo(
+                readVarInt(in), in.readLong(), in.readUTF(), readAppearance(in)));
     }
 
     private static void writeAppearance(DataOutputStream out, byte[] appearance) throws IOException {

@@ -55,6 +55,7 @@ public final class SyncManager {
     private volatile byte[] itemsPayload = emptyCountPayload();
     private volatile byte[] blocksPayload = emptyCountPayload();
     private volatile byte[] blockIconsPayload = JadeIconProtocol.encodeBlockIcons(List.of());
+    private volatile Map<String, byte[]> blockIconByCeId = Map.of();
     private volatile byte[] brewingPayload = emptyCountPayload();
     private volatile byte[] craftingDisplayPayload = emptyCountPayload();
     private volatile Set<String> craftingDisplayRecipeIds = Set.of();
@@ -76,6 +77,11 @@ public final class SyncManager {
 
     public byte[] blockIconsPayload() {
         return blockIconsPayload;
+    }
+
+    /** Client-bound item appearance for a CraftEngine block id, used by the block-position Jade probe. */
+    public byte[] blockIconAppearance(String ceId) {
+        return blockIconByCeId.get(ceId);
     }
 
     public byte[] brewingPayload() {
@@ -581,11 +587,13 @@ public final class SyncManager {
         }
 
         List<JadeIconProtocol.BlockIcon> icons = new ArrayList<>();
+        Map<String, byte[]> iconByCeId = new java.util.LinkedHashMap<>();
         for (Map.Entry<Key, BlockDefinition> entry : loadedBlocks.entrySet()) {
             ItemStack stack = iconsByBlock.get(entry.getKey());
             if (stack == null) continue;
             try {
                 byte[] appearance = encodeItemAppearance(stack);
+                iconByCeId.put(entry.getKey().asString(), appearance);
                 for (ImmutableBlockState state : entry.getValue().variantProvider().states()) {
                     if (state.visualBlockState() == null) continue;
                     icons.add(new JadeIconProtocol.BlockIcon(
@@ -595,6 +603,7 @@ public final class SyncManager {
                 plugin.getLogger().log(Level.WARNING, "Failed to export Jade icon for CraftEngine block '" + entry.getKey() + "'", t);
             }
         }
+        blockIconByCeId = Map.copyOf(iconByCeId);
         return JadeIconProtocol.encodeBlockIcons(icons);
     }
 
