@@ -46,6 +46,16 @@ cd client
 - JEI 的精确展示配方在连接时一次性注册；服务端热重载后新增/修改的配方要玩家重新连接才会刷新。
 - 只提供 1.21.11 一个目标，其他 1.21.x 补丁版本不承诺兼容。
 
+## 更新日志
+
+| 版本 | 功能 | 分支 |
+| --- | --- | --- |
+| 1.0.2 | JEI 显示 + Jade 显示 + 音乐功能 | `main` |
+| 1.0.1 | JEI 显示 + Jade 显示 | `no-music`（本分支） |
+| 1.0.0 | JEI 显示 | 历史版本 |
+
+详见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 许可证
 
 [MIT](LICENSE)。CraftEngine 及仓库中的社区版 CraftEngine 开发依赖是独立第三方软件，不受本项目 MIT 许可覆盖；构建依赖仅用于 `compileOnly`，运行服务器仍需自行提供合适版本的 CraftEngine。
