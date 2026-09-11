@@ -24,6 +24,7 @@ val targetFamily = "1.21.11"
 val modVersion: String by project
 val mavenGroup: String by project
 val modId: String by project
+val modName: String by project
 group = mavenGroup
 version = modVersion
 
@@ -88,11 +89,11 @@ tasks {
         }
     }
     jar {
-        archiveBaseName.set("$modId-1.21.11")
+        archiveBaseName.set("$modName-1.21.11")
         archiveClassifier.set("")
     }
     named<org.gradle.jvm.tasks.Jar>("remapJar") {
-        archiveFileName.set("$modId-1.21.11-$modVersion.jar")
+        archiveFileName.set("$modName-1.21.11-$modVersion.jar")
     }
     register<JavaExec>("channelTest") {
         dependsOn(testClasses)

@@ -30,7 +30,7 @@ The supported build target is exactly:
 | Target | Minecraft baseline | Java | Artifact |
 | --- | --- | --- | --- |
 | 1.21.11 server | 1.21.11 | 21 | CraftEngineClientBridge-1.0.2-1.21.11.jar |
-| 1.21.11 client | 1.21.11 | 21 | ceclientmod-1.21.11-1.0.2.jar |
+| 1.21.11 client | 1.21.11 | 21 | Rainveil-mod-1.21.11-1.0.1.jar |
 
 The client declares >=1.21.11 <1.22 in metadata. That range is the
 single-jar distribution contract; exact runtime testing on each patch remains
