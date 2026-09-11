@@ -17,7 +17,7 @@ Artifacts
   class major: 65 (Java 21)
   metadata: minecraft_target=1.21.11
 
-- client/build/libs/ceclientmod-1.21.11-1.0.2.jar
+- client/build/libs/Rainveil-mod-1.21.11-1.0.2.jar
   class major: 65 (Java 21)
   minecraft dependency: >=1.21.11 <1.22
   loader dependency: >=0.19.3

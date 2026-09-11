@@ -13,6 +13,7 @@ val targetFamily = "1.21.11"
 val modVersion: String by project
 val mavenGroup: String by project
 val modId: String by project
+val modName: String by project
 group = mavenGroup
 version = modVersion
 
@@ -105,13 +106,13 @@ tasks {
         configurations = listOf(shadowImplementation)
     }
     jar {
-        archiveBaseName.set("$modId-1.21.11")
+        archiveBaseName.set("$modName-1.21.11")
         archiveClassifier.set("")
     }
     remapJar {
         dependsOn(shadowJar)
         inputFile.set(shadowJar.get().archiveFile)
-        archiveFileName.set("$modId-1.21.11-$modVersion.jar")
+        archiveFileName.set("$modName-1.21.11-$modVersion.jar")
     }
     build {
         dependsOn(remapJar)

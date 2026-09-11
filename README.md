@@ -39,7 +39,7 @@ cd client
 ```
 
 产物：`server/build/libs/CraftEngineClientBridge-*.jar`（放服务器 `plugins/`）、
-`client/build/libs/ceclientmod-1.21.11-*.jar`（放 `.minecraft/mods/`）。
+`client/build/libs/Rainveil-mod-1.21.11-*.jar`（放 `.minecraft/mods/`）。
 
 ## 已知限制
 

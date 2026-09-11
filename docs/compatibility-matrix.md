@@ -6,7 +6,7 @@ not a promise that every patch in its manifest range has been tested in-game.
 | Component | Target | Baseline | Java | Important dependencies | Artifact |
 | --- | --- | --- | --- | --- | --- |
 | Paper/Folia bridge | 1.21.11 | 1.21.11 | 21 | Paperweight dev bundle 1.21.11-R0.1-SNAPSHOT; local CraftEngine API jar | server/build/libs/CraftEngineClientBridge-1.0.2-1.21.11.jar |
-| Fabric client | 1.21.11 | 1.21.11 | 21 | Loader 0.19.3; Fabric API 0.141.6+1.21.11; JEI 27.22.0.66; Jade 19.0.3 | client/build/libs/ceclientmod-1.21.11-1.0.2.jar |
+| Fabric client | 1.21.11 | 1.21.11 | 21 | Loader 0.19.3; Fabric API 0.141.6+1.21.11; JEI 27.22.0.66; Jade 19.0.3 | client/build/libs/Rainveil-mod-1.21.11-1.0.2.jar |
 
 ## Metadata contracts
 
